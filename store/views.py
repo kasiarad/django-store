@@ -1,53 +1,59 @@
-from django.shortcuts import render
-from django.views import View
-from django.http import JsonResponse
-from .models import *
+import datetime
 import json
-from django.shortcuts import render, get_object_or_404, redirect
+
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
-from django.core.exceptions import ObjectDoesNotExist
-from .forms import OrderForm, RegisterForm
-from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth.decorators import login_required
-import datetime
-from django.http import HttpResponse, Http404, HttpResponseRedirect
-from django.urls import reverse
-from . utils import cookieCart, cartData, guestOrder
+from django.http import JsonResponse
+from django.shortcuts import render, redirect
+from django.views import View
+from django.views.decorators.csrf import csrf_exempt
+
+from .models import *
+from .forms import RegisterForm
+from .utils import cookieCart, cartData, guestOrder
 
 
 class StoreView(View):
+
     def get(self, request):
 
         if request.user.is_authenticated:
             order, created = Order.objects.get_or_create(customer=request.user, complete=False)
             items = order.orderitem_set.all()
-            cartItems = order.all_cart_quantity
+            cart_items = order.all_cart_quantity
         else:
             items = []
             order = {'all_cart_value':0,'all_cart_quantity':0, 'shipping':False}
-            cartItems = order['all_cart_quantity']
-        products=Product.objects.all()
-        context={'products':products, 'cartItems':cartItems}
+            cart_items = order['all_cart_quantity']
+        products = Product.objects.all()
+        context = {
+            'products': products,
+            'cartItems': cart_items
+        }
         return render(request, 'store/store.html', context)
 
 
 class About(View):
-    def get(self,request):
-        context={}
+
+    def get(self, request):
+        context = {}
         return render(request, 'store/about.html', context)
 
+
 class CartView(View):
+
     def get(self, request):
 
         data = cartData(request)
-        cartItems = data['cartItems']
+        cart_items = data['cartItems']
         order = data['order']
         items = data['items']
-        context = {'items': items, 'order':order, 'cartItems':cartItems}
+        context = {
+            'items': items,
+            'order': order,
+            'cartItems': cart_items
+        }
         return render(request, 'store/cart.html', context)
-
-from django.views.decorators.csrf import csrf_exempt
 
 
 @csrf_exempt
@@ -64,6 +70,7 @@ def checkout(request):
         items = cookieData['items']
     context = {'items': items, 'order':order, 'cartItems':cartItems}
     return render(request, 'store/checkout.html', context)
+
 
 def updateItem(request):
     data = json.loads(request.body)
@@ -101,19 +108,12 @@ def registerPage(request):
         if request.method == 'POST':
             form = RegisterForm(request.POST)
             if request.POST["password"] == request.POST["password_confirmation"]:
-
-                # user = User.objects.get(id=request.user.id)
-                print(form.is_valid())
                 if form.is_valid():
-                    # user.username = form.cleaned_data.get('username')
-                    # user.email = form.cleaned_data.get('email')
-                    # user.save()
                     user = User.objects.create_user(
                         username=form.cleaned_data['username'],
                         email=form.cleaned_data['email'],
                         password=form.cleaned_data['password']
                     )
-                    print("Here")
                     messages.success(request, 'Account was created for {}'.format(user))
                     return redirect('store')
                 else:
@@ -156,7 +156,6 @@ def processOrder(request):
             order.complete = True
         order.save()
 
-
     else:
         total, order=guestOrder(request,data)
 
@@ -175,6 +174,3 @@ def processOrder(request):
             postcode=data['shipping']['postcode'],
         )
     return JsonResponse('Payment submitted..', safe=False)
-
-# Create your views here.
-

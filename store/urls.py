@@ -1,7 +1,5 @@
 from django.urls import path
 from . import views
-from django.views.generic import TemplateView
-
 
 
 urlpatterns=[
@@ -13,5 +11,4 @@ urlpatterns=[
     path('process_order/', views.processOrder, name="process_order"),
     path('login/', views.loginPage, name="login"),
     path('register/', views.registerPage, name="register"),
-
 ]
